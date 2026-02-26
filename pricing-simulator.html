@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulateur Prix — E-Commerce Maroc</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;600&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1207;
+    --paper: #fdf6ec;
+    --warm: #c8622a;
+    --gold: #d4a853;
+    --gold-light: #f0d080;
+    --green: #2d6a4f;
+    --green-light: #52b788;
+    --red: #9b2226;
+    --border: #dbc9a2;
+    --card: #fffdf7;
+    --shadow: rgba(26,18,7,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Tajawal', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      radial-gradient(ellipse at 20% 10%, rgba(212,168,83,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(200,98,42,0.1) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 60px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 32px;
+  }
+
+  .header-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--warm);
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 900;
+    color: var(--ink);
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+
+  .header h1 span { color: var(--warm); }
+
+  .header p {
+    color: #7a6b52;
+    font-size: 15px;
+    font-weight: 400;
+  }
+
+  .route-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ink);
+    color: var(--gold-light);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 6px 16px;
+    border-radius: 2px;
+    margin-top: 16px;
+    letter-spacing: 1px;
+  }
+
+  /* Grid layout */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 620px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    box-shadow: 4px 4px 0 var(--border);
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+
+  .card:hover {
+    box-shadow: 6px 6px 0 var(--gold);
+    transform: translate(-1px, -1px);
+  }
+
+  .card-full { grid-column: 1 / -1; }
+
+  .card-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--warm);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 2px;
+    background: var(--warm);
+  }
+
+  /* Form fields */
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #5a4e3a;
+    margin-bottom: 5px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+
+  .input-wrap {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid var(--border);
+    border-radius: 3px;
+    background: var(--paper);
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .input-wrap:focus-within {
+    border-color: var(--warm);
+    box-shadow: 0 0 0 3px rgba(200,98,42,0.1);
+  }
+
+  .input-unit {
+    padding: 0 12px;
+    background: #ede8dc;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: #7a6b52;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    border-right: 1.5px solid var(--border);
+    white-space: nowrap;
+    font-weight: 600;
+  }
+
+  .input-unit.right {
+    border-right: none;
+    border-left: 1.5px solid var(--border);
+  }
+
+  input[type="number"], select {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 0 12px;
+    height: 40px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 600;
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  select {
+    font-family: 'Tajawal', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .hint {
+    font-size: 11px;
+    color: #9a8c76;
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  /* Slider */
+  .slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--warm);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 1px 4px var(--shadow);
+    transition: transform 0.15s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+  }
+
+  .slider-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--warm);
+    min-width: 44px;
+    text-align: right;
+  }
+
+  /* Results panel */
+  .results-card {
+    background: var(--ink);
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    padding: 32px;
+    color: var(--paper);
+    box-shadow: 6px 6px 0 var(--warm);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .results-card::after {
+    content: '◈';
+    position: absolute;
+    right: 24px;
+    top: 20px;
+    font-size: 48px;
+    color: rgba(212,168,83,0.15);
+    font-family: serif;
+  }
+
+  .results-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold-light);
+    margin-bottom: 24px;
+    letter-spacing: 0.3px;
+  }
+
+  .breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 520px) {
+    .breakdown { grid-template-columns: 1fr; }
+  }
+
+  .breakdown-item {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(212,168,83,0.2);
+    border-radius: 3px;
+    padding: 12px 16px;
+  }
+
+  .breakdown-item .bi-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(240,208,128,0.7);
+    margin-bottom: 4px;
+  }
+
+  .breakdown-item .bi-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .breakdown-item.accent {
+    background: rgba(212,168,83,0.12);
+    border-color: rgba(212,168,83,0.4);
+  }
+
+  .breakdown-item.accent .bi-val { color: var(--gold-light); }
+
+  /* Final price */
+  .final-price-box {
+    background: var(--warm);
+    border-radius: 3px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .final-price-box .fp-label {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+  }
+
+  .final-price-box .fp-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 32px;
+    font-weight: 600;
+    color: white;
+    letter-spacing: -1px;
+  }
+
+  .final-price-box .fp-unit {
+    font-size: 16px;
+    opacity: 0.85;
+  }
+
+  /* Suggested prices */
+  .suggested-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  @media (max-width: 500px) {
+    .suggested-grid { grid-template-columns: 1fr; }
+  }
+
+  .sug-item {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 3px;
+    padding: 10px 14px;
+    text-align: center;
+  }
+
+  .sug-item .sug-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(240,208,128,0.6);
+    margin-bottom: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .sug-item .sug-price {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--green-light);
+  }
+
+  .sug-item.best {
+    border-color: var(--green-light);
+    background: rgba(82,183,136,0.1);
+  }
+
+  /* Calc button */
+  .calc-btn {
+    width: 100%;
+    background: var(--warm);
+    color: white;
+    border: none;
+    border-radius: 3px;
+    padding: 14px;
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    margin-bottom: 20px;
+    box-shadow: 3px 3px 0 rgba(200,98,42,0.4);
+  }
+
+  .calc-btn:hover {
+    background: #b55523;
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 rgba(200,98,42,0.5);
+  }
+
+  .calc-btn:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 rgba(200,98,42,0.4);
+  }
+
+  /* Warning / tip */
+  .tip {
+    background: rgba(212,168,83,0.08);
+    border-left: 3px solid var(--gold);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: rgba(240,208,128,0.75);
+    border-radius: 0 3px 3px 0;
+    margin-top: 16px;
+    line-height: 1.6;
+  }
+
+  /* Divider */
+  .divider {
+    border: none;
+    border-top: 1.5px dashed var(--border);
+    margin: 24px 0;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 40px;
+    font-size: 11px;
+    color: #b0a08a;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  /* Animate results */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-in {
+    animation: fadeUp 0.4s ease forwards;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <span class="header-tag">Outil de Pricing</span>
+    <h1>Simulateur <span>Prix</span><br>E-Commerce Maroc</h1>
+    <p>Calcule ton prix de revient et ton prix de vente optimisé</p>
+    <div class="route-badge">
+      🇨🇳 Chine → 🚢 Mer Rouge → 🇲🇦 Maroc
+    </div>
+  </div>
+
+  <!-- Section 1: Produit -->
+  <div class="grid">
+    <div class="card card-full">
+      <div class="card-title">01 — Infos Produit</div>
+      <div class="grid" style="margin-bottom:0; gap:16px">
+        <div class="field">
+          <label>Prix Achat (FOB Chine)</label>
+          <div class="input-wrap">
+            <span class="input-unit">USD</span>
+            <input type="number" id="fob" value="5" step="0.5" min="0.1">
+          </div>
+          <div class="hint">Prix unitaire du fournisseur chinois (Alibaba, 1688...)</div>
+        </div>
+        <div class="field">
+          <label>Quantité commandée</label>
+          <div class="input-wrap">
+            <input type="number" id="qty" value="100" min="1">
+            <span class="input-unit right">PCS</span>
+          </div>
+          <div class="hint">Nombre d'unités dans la commande</div>
+        </div>
+        <div class="field">
+          <label>Poids unitaire</label>
+          <div class="input-wrap">
+            <input type="number" id="weight" value="0.5" step="0.1" min="0.01">
+            <span class="input-unit right">KG</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Catégorie douanière</label>
+          <div class="input-wrap" style="padding:0">
+            <select id="category" style="padding: 0 12px; height:40px; flex:1">
+              <option value="25">Habillement / Textile — 25%</option>
+              <option value="35">Chaussures — 35%</option>
+              <option value="40">Électronique grand public — 40%</option>
+              <option value="17.5">Informatique / High-tech — 17.5%</option>
+              <option value="25" selected>Cosmétiques / Beauté — 25%</option>
+              <option value="30">Jouets — 30%</option>
+              <option value="25">Maison & Décoration — 25%</option>
+              <option value="25">Accessoires — 25%</option>
+              <option value="custom">Taux personnalisé →</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" id="custom-field" style="display:none">
+          <label>Taux douane personnalisé</label>
+          <div class="input-wrap">
+            <input type="number" id="custom-tax" value="25" min="0" max="100">
+            <span class="input-unit right">%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Transport -->
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">02 — Transport & Logistique</div>
+
+      <div class="field">
+        <label>Mode d'expédition</label>
+        <div class="input-wrap" style="padding:0">
+          <select id="shipmode" style="padding:0 12px; height:40px; flex:1">
+            <option value="sea_lcl">Mer — LCL (Groupage)</option>
+            <option value="sea_fcl">Mer — FCL (Conteneur)</option>
+            <option value="air">Avion — Express</option>
+            <option value="manual">Saisie manuelle</option>
+          </select>
+        </div>
+        <div class="hint" id="ship-hint">~3–5 USD/kg tout inclus (Shanghai → Casablanca)</div>
+      </div>
+
+      <div class="field" id="manual-ship-field" style="display:none">
+        <label>Frais transport (total)</label>
+        <div class="input-wrap">
+          <span class="input-unit">USD</span>
+          <input type="number" id="manual-ship" value="200" min="0">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Taux de change</label>
+        <div class="input-wrap">
+          <span class="input-unit">1 USD =</span>
+          <input type="number" id="exchange" value="10.05" step="0.01" min="1">
+          <span class="input-unit right">MAD</span>
+        </div>
+        <div class="hint">Taux actuel ~10.0–10.1 MAD/USD</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">03 — Frais Locaux</div>
+
+      <div class="field">
+        <label>Transit & Dédouanement</label>
+        <div class="input-wrap">
+          <span class="input-unit">MAD</span>
+          <input type="number" id="transit" value="500" min="0">
+        </div>
+        <div class="hint">Frais transitaire, manutention port (~400–800 MAD)</div>
+      </div>
+
+      <div class="field">
+        <label>Livraison locale (par unité)</label>
+        <div class="input-wrap">
+          <span class="input-unit">MAD</span>
+          <input type="number" id="delivery" value="25" min="0">
+        </div>
+        <div class="hint">Amana, Glovo, etc. (~20–35 MAD/colis)</div>
+      </div>
+
+      <div class="field">
+        <label>Frais plateforme (Jumia, Shopify...)</label>
+        <div class="input-wrap">
+          <input type="number" id="platform" value="5" min="0" max="100">
+          <span class="input-unit right">%</span>
+        </div>
+        <div class="hint">Commission marketplace (Jumia ~8–12%, Shopify ~1–2%)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: Marge -->
+  <div class="grid">
+    <div class="card card-full">
+      <div class="card-title">04 — Stratégie de Marge</div>
+      <div class="grid" style="margin-bottom:0; gap:24px">
+        <div class="field">
+          <label>Marge bénéficiaire cible</label>
+          <div class="slider-wrap">
+            <input type="range" id="margin" min="10" max="200" value="40" oninput="document.getElementById('margin-val').textContent=this.value+'%'">
+            <span class="slider-val" id="margin-val">40%</span>
+          </div>
+          <div class="hint">Marge sur coût total. 30–50% = standard Maroc ecom</div>
+        </div>
+        <div class="field">
+          <label>Retours & imprévu (%)</label>
+          <div class="slider-wrap">
+            <input type="range" id="returns" min="0" max="20" value="5" oninput="document.getElementById('returns-val').textContent=this.value+'%'">
+            <span class="slider-val" id="returns-val">5%</span>
+          </div>
+          <div class="hint">Provision pour retours, articles défectueux (~3–8%)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bouton -->
+  <button class="calc-btn" onclick="calculate()">⟶ Calculer le Prix de Revient</button>
+
+  <!-- Results -->
+  <div class="results-card" id="results" style="display:none">
+    <div class="results-title">📊 Analyse de Coût — Résultat</div>
+
+    <div class="breakdown" id="breakdown-grid">
+      <!-- filled by JS -->
+    </div>
+
+    <hr style="border:none; border-top:1px solid rgba(255,255,255,0.1); margin-bottom:20px">
+
+    <div class="final-price-box">
+      <div>
+        <div class="fp-label">Prix de Vente Minimum</div>
+        <div style="font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px">Pour ne pas perdre d'argent</div>
+      </div>
+      <div class="fp-val"><span id="min-price">—</span> <span class="fp-unit">MAD</span></div>
+    </div>
+
+    <div style="margin-bottom: 16px">
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(240,208,128,0.7); margin-bottom:10px">
+        PRIX SUGGÉRÉS SELON LA MARGE
+      </div>
+      <div class="suggested-grid">
+        <div class="sug-item">
+          <div class="sug-label">Minimum (0%)</div>
+          <div class="sug-price" id="sug-0">—</div>
+        </div>
+        <div class="sug-item best">
+          <div class="sug-label">⭐ Recommandé</div>
+          <div class="sug-price" id="sug-rec">—</div>
+        </div>
+        <div class="sug-item">
+          <div class="sug-label">Premium (+50%)</div>
+          <div class="sug-price" id="sug-prem">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tip" id="analysis-tip">
+      Analyse disponible après calcul.
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    SIMULATEUR ECOM MAROC · IMPORT CHINE · V1.0<br>
+    <span style="opacity:0.5">Les taux douaniers sont indicatifs — vérifier avec un transitaire agréé</span>
+  </div>
+
+</div>
+
+<script>
+  // Show/hide custom tax field
+  document.getElementById('category').addEventListener('change', function() {
+    document.getElementById('custom-field').style.display = this.value === 'custom' ? 'block' : 'none';
+  });
+
+  // Ship mode hints & manual field
+  const shipHints = {
+    sea_lcl: '~3–5 USD/kg tout inclus · Délai: 30–45 jours (Shanghai → Casa)',
+    sea_fcl: '~1.5–2.5 USD/kg · Rentable à partir de >500kg · Délai: 30–45 jours',
+    air: '~8–15 USD/kg · Délai: 5–10 jours · Pour produits légers/urgents',
+    manual: 'Saisir le coût total de transport'
+  };
+
+  document.getElementById('shipmode').addEventListener('change', function() {
+    document.getElementById('ship-hint').textContent = shipHints[this.value];
+    document.getElementById('manual-ship-field').style.display = this.value === 'manual' ? 'block' : 'none';
+  });
+
+  function getVal(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+  function formatMAD(val) {
+    return val.toLocaleString('fr-MA', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+
+  function calculate() {
+    const fob = getVal('fob');
+    const qty = getVal('qty') || 1;
+    const weight = getVal('weight');
+    const exchange = getVal('exchange');
+    const transit = getVal('transit');
+    const delivery = getVal('delivery');
+    const platformPct = getVal('platform') / 100;
+    const marginPct = getVal('margin') / 100;
+    const returnsPct = getVal('returns') / 100;
+
+    // Douane
+    const catEl = document.getElementById('category');
+    const taxPct = catEl.value === 'custom' ? getVal('custom-tax') / 100 : parseFloat(catEl.value) / 100;
+    const TVA = 0.20;
+    const TPI = 0.025; // Taxe Parafiscale Import
+
+    // Transport
+    let shipCostUSD = 0;
+    const mode = document.getElementById('shipmode').value;
+    if (mode === 'sea_lcl') shipCostUSD = weight * qty * 4;
+    else if (mode === 'sea_fcl') shipCostUSD = weight * qty * 2;
+    else if (mode === 'air') shipCostUSD = weight * qty * 11;
+    else shipCostUSD = getVal('manual-ship');
+
+    // Coûts en USD
+    const totalFOB = fob * qty;
+    const insuranceUSD = totalFOB * 0.005; // 0.5% assurance
+    const CIF = totalFOB + shipCostUSD + insuranceUSD;
+
+    // Droits de douane (sur valeur CIF)
+    const droitsDouane = CIF * taxPct;
+    const tpiAmount = CIF * TPI;
+    const tvaAmount = (CIF + droitsDouane + tpiAmount) * TVA;
+    const totalImportTax = droitsDouane + tpiAmount + tvaAmount;
+
+    // Total coût import (USD → MAD)
+    const totalCostUSD = CIF + totalImportTax;
+    const totalCostMAD = totalCostUSD * exchange;
+    const transitMAD = transit; // already MAD
+
+    // Coût par unité
+    const costPerUnit_import = (totalCostMAD + transitMAD) / qty;
+    const costPerUnit_delivery = delivery;
+    const costPerUnit_base = costPerUnit_import + costPerUnit_delivery;
+
+    // Ajouter retours
+    const costWithReturns = costPerUnit_base * (1 + returnsPct);
+
+    // Prix minimum (break even)
+    const minPriceBeforePlatform = costWithReturns / (1 - platformPct);
+    const minPrice = minPriceBeforePlatform;
+
+    // Prix selon marge
+    const recPrice = costWithReturns * (1 + marginPct) / (1 - platformPct);
+    const premPrice = costWithReturns * 1.5 / (1 - platformPct);
+
+    // ROI
+    const profitRec = recPrice - minPrice;
+    const roiPct = ((recPrice - costWithReturns) / costWithReturns * 100).toFixed(0);
+    const xMarkup = (recPrice / fob / exchange * 100 / 100).toFixed(1);
+
+    // Display results
+    const grid = document.getElementById('breakdown-grid');
+    const items = [
+      { label: 'FOB Chine (total)', val: formatMAD(totalFOB * exchange) + ' MAD', accent: false },
+      { label: 'Transport', val: formatMAD(shipCostUSD * exchange) + ' MAD', accent: false },
+      { label: 'Droits de Douane', val: formatMAD(droitsDouane * exchange) + ' MAD', accent: false },
+      { label: 'TVA Import (20%)', val: formatMAD(tvaAmount * exchange) + ' MAD', accent: false },
+      { label: 'Transit / Dédouanement', val: formatMAD(transitMAD) + ' MAD', accent: false },
+      { label: 'Livraison locale (total)', val: formatMAD(delivery * qty) + ' MAD', accent: false },
+      { label: 'Coût/unité (avant marge)', val: formatMAD(costWithReturns) + ' MAD', accent: true },
+      { label: 'Markup vs prix achat', val: 'x' + xMarkup, accent: true },
+    ];
+
+    grid.innerHTML = items.map(i => `
+      <div class="breakdown-item ${i.accent ? 'accent' : ''}">
+        <div class="bi-label">${i.label}</div>
+        <div class="bi-val">${i.val}</div>
+      </div>
+    `).join('');
+
+    document.getElementById('min-price').textContent = formatMAD(minPrice);
+    document.getElementById('sug-0').textContent = formatMAD(minPrice) + ' MAD';
+    document.getElementById('sug-rec').textContent = formatMAD(recPrice) + ' MAD';
+    document.getElementById('sug-prem').textContent = formatMAD(premPrice) + ' MAD';
+
+    // Tip analysis
+    const tip = document.getElementById('analysis-tip');
+    let tipText = `💡 Avec un prix de vente de <strong>${formatMAD(recPrice)} MAD</strong>, tu réalises une marge de <strong>${roiPct}%</strong> sur le coût total. `;
+
+    if (fob * exchange < 50) {
+      tipText += `Le produit est importé à ${formatMAD(fob * exchange)} MAD — bon rapport qualité/marge possible. `;
+    }
+    if (mode === 'air') {
+      tipText += `⚠️ Le transport aérien double souvent le prix de revient — passe à la mer dès que la demande est prouvée. `;
+    }
+    if (taxPct >= 0.35) {
+      tipText += `⚠️ Taux douanier élevé (${taxPct * 100}%) — veille à avoir une valeur déclarée correcte avec ton transitaire.`;
+    }
+
+    tip.innerHTML = tipText;
+
+    const resultsEl = document.getElementById('results');
+    resultsEl.style.display = 'block';
+    resultsEl.classList.remove('animate-in');
+    void resultsEl.offsetWidth;
+    resultsEl.classList.add('animate-in');
+    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+</script>
+</body>
+</html>
